@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Pokedex</title>
+    <link rel="stylesheet" href="./css/index.css">
+</head>
+<body>
+    <section class="search-area">
+        <form class="search-form">
+            <input class="search-input" type="text" name="name" placeholder="pokemon name" height="30px">
+            <div class="search-button">GO!</button>
+        </form>
+    </section>
+    <section class="display-area">
+        <div class="card">
+            <div class="content-container">
+                <div class="dex-title">
+                    <!-- NAME -->
+                </div>
+                <div class="dex-types">
+                    <!-- TYPE(S) -->
+                </div>
+            </div>
+            <div class="dex-sprite">
+            <!-- SPRITE -->
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const card = document.querySelector(".card");
+        const pokeForm = document.querySelector(".search-form input");
+        const titleInput = document.querySelector(".dex-title");
+        const typesInput = document.querySelector(".dex-types");
+        const spriteInput = document.querySelector(".dex-sprite");
+        const display = document.querySelector(".display-area");
+        const button = document.querySelector(".search-button");
+        colorType = {
+            normal: "A8A77A",
+            fire: "EE8130",
+            water: "6390F0",
+            electric: "F7D02C",
+            grass: "7AC74C",
+            ice: "96D9D6",
+            fighting: "C22E28",
+            poison: "A33EA1",
+            ground: "E2BF65",
+            flying: "A98FF3",
+            psychic: "F95587",
+            bug: "A6B91A",
+            rock: "B6A136",
+            ghost: "735797",
+            dragon: "6F35FC",
+            dark: "705746",
+            steel: "B7B7CE",
+            fairy: "D685AD"
+        }
+        const createPokeCard = (event) => {
+            event.preventDefault();
+            let typeImg = "";
+            const pokemon = pokeForm.value.toLowerCase();
+            fetch(`http://localhost:5000/newsearch?name=${pokemon}`)
+                .then(res => res.json())
+                .then(obj => {      //now we have the treated pokemon object straight from our API
+                    let typeImg = "";
+                    if (obj !== undefined && obj !== "oops") {
+                        for (let i = 0; i < obj.types.length ; i++) {
+                            typeImg = typeImg + `<img src="./css/assets/icons/${obj.types[i]}_en.png" height="25px">`;
+                        }
+                        titleInput.innerHTML = `${obj.name}`;  //Title
+                        typesInput.innerHTML = typeImg;  // Types
+                        spriteInput.innerHTML = `<img src="${obj.sprite}" height="200px">`;  // Sprite
+                        card.style.backgroundColor = `#${colorType[obj.types[0]]}`;
+
+                    } else {    //If fetch gives me an undefined or "oops" error, then load missingno
+                        titleInput.innerHTML = "missingno";  //Title
+                        typesInput.innerHTML = `<img src="./css/assets/icons/unknown.png" height="25">`;  // Types
+                        spriteInput.innerHTML = `<img src="./css/assets/missingno.png" height="200px">`;  // Sprite
+                        card.style.backgroundColor = `#000000`;
+                    }
+                        card.style.display = "flex";
+                });
+            }
+
+        button.addEventListener("click", createPokeCard);
+
+        pokeForm.addEventListener("keydown", function(event) {
+            if (event.keyCode === 13) {
+                event.preventDefault();
+                button.click();
+                pokeForm.value="";
+            }
+        });
+        
+
+    </script>
+</body>
+</html>
