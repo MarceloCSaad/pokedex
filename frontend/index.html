@@ -25,15 +25,36 @@
             <!-- SPRITE -->
             </div>
         </div>
+        <div class="card-deck">
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+            <div class="small-card"></div>
+        </div>
     </section>
 
     <script>
+        let currentID = 0;
         const card = document.querySelector(".card");
         const pokeForm = document.querySelector(".search-form input");
         const titleInput = document.querySelector(".dex-title");
         const typesInput = document.querySelector(".dex-types");
         const spriteInput = document.querySelector(".dex-sprite");
-        const display = document.querySelector(".display-area");
+        const cardDeck = document.querySelectorAll(".small-card");
         const button = document.querySelector(".search-button");
         colorType = {
             normal: "A8A77A",
@@ -55,14 +76,17 @@
             steel: "B7B7CE",
             fairy: "D685AD"
         }
-        const createPokeCard = (event) => {
+        
+        const createBigCard = (event) => {
             event.preventDefault();
             let typeImg = "";
             const pokemon = pokeForm.value.toLowerCase();
-            fetch(`http://localhost:5000/newsearch?name=${pokemon}`)
+            try {
+                fetch(`http://localhost:5000/newsearch?name=${pokemon}`)
                 .then(res => res.json())
                 .then(obj => {      //now we have the treated pokemon object straight from our API
                     let typeImg = "";
+                    currentID = obj.id;
                     if (obj !== undefined && obj !== "oops") {
                         for (let i = 0; i < obj.types.length ; i++) {
                             typeImg = typeImg + `<img src="./css/assets/icons/${obj.types[i]}_en.png" height="25px">`;
@@ -71,7 +95,6 @@
                         typesInput.innerHTML = typeImg;  // Types
                         spriteInput.innerHTML = `<img src="${obj.sprite}" height="200px">`;  // Sprite
                         card.style.backgroundColor = `#${colorType[obj.types[0]]}`;
-
                     } else {    //If fetch gives me an undefined or "oops" error, then load missingno
                         titleInput.innerHTML = "missingno";  //Title
                         typesInput.innerHTML = `<img src="./css/assets/icons/unknown.png" height="25">`;  // Types
@@ -79,10 +102,30 @@
                         card.style.backgroundColor = `#000000`;
                     }
                         card.style.display = "flex";
-                });
+                })
             }
+            finally { getDeckList() }
+        }
+        
+        const getDeckList = () => {
+            fetch(`http://localhost:5000/carddeck?id=${currentID}`)
+            .then(res => res.json())
+            .then(obj => createSmallCard(obj))
+        }
 
-        button.addEventListener("click", createPokeCard);
+        const createSmallCard = (obj) => {
+            obj.cardDeck.forEach( async (element, index) => {
+                fetch(`http://localhost:5000/newsearch?name=${element}`)
+                .then(response => response.json())
+                .then(object => {
+                    cardDeck[index].innerHTML = `<h1>${object.id}</h1> <img src="${object.sprite}"></div>`;
+                })
+            })
+        }
+
+        getDeckList();
+
+        button.addEventListener("click", createBigCard);
 
         pokeForm.addEventListener("keydown", function(event) {
             if (event.keyCode === 13) {

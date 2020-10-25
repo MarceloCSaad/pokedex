@@ -68,6 +68,23 @@ img {
     justify-content: center;
     align-items: center;
 }
+.card-deck {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-evenly;
+    padding: 30px;
+    max-width: 100%;
+}
+.small-card {
+    background-color: ivory;
+    width: 30%;
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-items: center;
+    align-items: center;
+}
+
 .card {
     border-radius: 20px;
     border-width: 10px;
