@@ -13,33 +13,29 @@
     </section>
     <section class="display-area">
         <div class="card">
-            <div class="content-container">
-                <div class="dex-title">
-                    <!-- NAME -->
-                </div>
-                <div class="dex-types">
-                    <!-- TYPE(S) -->
-                </div>
-            </div>
-            <div class="dex-sprite">
-            <!-- SPRITE -->
-            </div>
+            <!-- BIG CARD CREATED DINAMICALLY HERE -->
         </div>
         <div class="card-deck">
-            <!-- SMALL CARDS DECK HERE -->
+            <!-- DECK OF SMALL CARDS CREATED DINAMICALLY HERE -->
         </div>
     </section>
 
     <script>
         let range = 30;
-        let deck = [];
         const card = document.querySelector(".card");
         const pokeForm = document.querySelector(".search-form input");
         const titleInput = document.querySelector(".dex-title");
         const typesInput = document.querySelector(".dex-types");
         const spriteInput = document.querySelector(".dex-sprite");
-        const cardDeck = document.querySelectorAll(".card-deck");
+        const cardDeck = document.querySelector(".card-deck");
         const button = document.querySelector(".search-button");
+        const missingno = {
+            id: 0,
+            name: "missingno",
+            icon: "./css/assets/icons/unknown.png",
+            sprite: "./css/assets/missingno.png",
+            types: ["unknown"]
+        }
         colorType = {
             normal: "A8A77A",
             fire: "EE8130",
@@ -58,56 +54,117 @@
             dragon: "6F35FC",
             dark: "705746",
             steel: "B7B7CE",
-            fairy: "D685AD"
+            fairy: "D685AD",
+            unknown: "000000"
         }
         
-        const createBigCard = (event) => {
+        const createBigCard = (obj) => {
+            console.log(`Hora de criar meu Big Card. Entrei em createBigCard e recebi o seguinte obj:`)
+            console.log(obj)
+            card.innerHTML = "";
+
+            // !!!!!!!! SEE CARD SCTRUCTURE BELOW !!!!!!!!
+            /*
+            <div class="card">
+                <div class="content-container">
+                    <div class="dex-title">
+                        <!-- NAME -->
+                    </div>
+                    <div class="dex-types">
+                        <!-- TYPE IMG(S) -->
+                    </div>
+                </div>
+                <div class="dex-sprite">
+                <!-- SPRITE -->
+                </div>
+            </div>
+            */
+            
+            let newContentContainer = document.createElement('div')
+            let newDexTitle = document.createElement('div')
+            let newDexTypes = document.createElement('div')
+            let newDexSprite = document.createElement('div')
+            
+            newContentContainer.className = "content-container"
+            newDexTitle.className = "dex-title"
+            newDexTypes.className = "dex-types"
+            newDexSprite.className = "dex-sprite"
+
+            newDexTitle.innerHTML = obj.name
+            newContentContainer.appendChild(newDexTitle)
+
+            let newSprite;
+            for (let i = 0; i < obj.types.length ; i++) {
+                newSprite = document.createElement('img')
+                if (obj.types[i] === "unknown") { newSprite.src = "./css/assets/icons/unknown.png" }
+                else { newSprite.src = `./css/assets/icons/${obj.types[i]}_en.png` }
+                newSprite.style.height = '25px'
+                newDexTypes.appendChild(newSprite);
+            }
+            newContentContainer.appendChild(newSprite)
+            card.appendChild(newContentContainer)
+
+            newSprite = document.createElement('img')
+            newSprite.src = `${obj.sprite}`
+            newSprite.style.height = "200px"
+            card.appendChild(newSprite)
+
+            card.style.backgroundColor = `#${colorType[obj.types[0]]}`;
+            card.style.display = "flex";
+        }
+
+        const createSmallCard = (obj) => {
+            let newCardBody = document.createElement('div')
+            let cardID = document.createElement('h1')
+            let cardSprite = document.createElement('img')
+            
+            newCardBody.className = "small-card"
+            cardID.innerHTML = obj.id
+            cardID.style.margin = "0px"
+            cardSprite.className = "img"
+            cardSprite.src = obj.sprite
+            
+            newCardBody.appendChild(cardID);
+            newCardBody.appendChild(cardSprite);
+            
+            return newCardBody
+        }
+
+        async function getSingleCard (event) {
             event.preventDefault();
-            let typeImg = "";
+            let success = true;
             const pokemon = pokeForm.value.toLowerCase();
-            fetch(`http://localhost:5000/newsearch?name=${pokemon}`)
+            await fetch(`http://localhost:5000/newsearch?name=${pokemon}`)
             .then(res => res.json())
-            .then(obj => {      //now we have the pokemon card object, straight from our API!
-                let typeImg = "";
-                if (obj !== undefined && obj !== "oops") {
-                    for (let i = 0; i < obj.types.length ; i++) {
-                        typeImg = typeImg + `<img src="./css/assets/icons/${obj.types[i]}_en.png" height="25px">`;
-                    }
-                    titleInput.innerHTML = `${obj.name}`;  //Title
-                    typesInput.innerHTML = typeImg;  // Types
-                    spriteInput.innerHTML = `<img src="${obj.sprite}" height="200px">`;  // Sprite
-                    card.style.backgroundColor = `#${colorType[obj.types[0]]}`;
-                } else {    //If fetch gives me an undefined or "oops" error, then load missingno
-                    titleInput.innerHTML = "missingno";  //Title
-                    typesInput.innerHTML = `<img src="./css/assets/icons/unknown.png" height="25">`;  // Types
-                    spriteInput.innerHTML = `<img src="./css/assets/missingno.png" height="200px">`;  // Sprite
-                    card.style.backgroundColor = `#000000`;
+            .then(obj => {
+                if (obj === "oops") {
+                    console.log('Got an "oops" error from the backend ==> Load MISSIGNO')
+                    createBigCard(missingno)
                 }
-                    card.style.display = "flex";
+                else { createBigCard(obj) }
             })
+            card.style.display = "flex";
         }
-        
+
         async function getDeckList (targetURL) {
             await fetch(targetURL)
             .then(res => res.json())
             .then(obj => {  //recebe um array de novos pkms a serem adicionados ao deck
                 if (obj != "oops"){
                     obj = obj[0];
-                    cardDeck[0].innerHTML = createSmallCard (obj[0])
+                    obj.forEach( el => { cardDeck.appendChild(createSmallCard(el)) })
                     // createSmallCard(obj[0])
                 }
             })
         }
 
-        const createSmallCard = (obj) => {
-            return `<div class="small-card"><h1>${obj.id}</h1> <img src="${obj.sprite}"></div>`;
-        }
+
+        getDeckList(`http://localhost:5000/carddeck?offset=0&range=${range}`);  //ON PAGE LOAD => INITIAL DECK
+
+        button.addEventListener("click", getSingleCard);
 
 
-        getDeckList(`http://localhost:5000/carddeck?offset=0&range=${range}`);
-
-        button.addEventListener("click", createBigCard);
-
+        // FORM CLICKER ==> HITTING ENTER WHILE TYPING A POKEMON WILL CLICK THE "GO!" BUTTON
         pokeForm.addEventListener("keydown", function(event) {
             if (event.keyCode === 13) {
                 event.preventDefault();
@@ -115,8 +172,6 @@
                 pokeForm.value="";
             }
         });
-        
-
-    </script>
-</body>
+        </script>
+    </body>
 </html>
