@@ -23,84 +23,109 @@ const cors = require("cors");
 const apiUrl = "https://pokeapi.co/api/v2/";
 class pokemon {
     constructor (name, id, icon, sprite, types) {
-        this.name = name;
         this.id = id;
+        this.name = name;
         this.icon = icon;
         this.sprite = sprite;
         this.types = types;
     }
 };
-const varList = {
+const deckProperties = {
     totalPokemons: 0, //house the total amount of known pokemons
-    offset: 0,        //the pokemon ID that will start the list
-    size: 18,          //the list size
-    next: 18,         //store the next list (kindly provided by pokeAPI itself)
-    previous: 0,     //store the previous list (kindly provided by pokeAPI itself)
-    cardDeck: []         //Array of pokemon class Cards
+    next: "",         //store the next list (kindly provided by pokeAPI itself)
+    previous: "",     //store the previous list (kindly provided by pokeAPI itself)
+    listOfCards: []         //Array of pokemon class Cards
 }
 internalApp.use(cors());
 internalApp.use(bodyParser.json());
 internalApp.use(bodyParser.urlencoded({ extended:true }));
 
 
-
-
-// FUNCTIONS
-async function createCard (req, res, needStringfy) {
-    // Receive a pkmn request, searche pokeAPI, create a card, strigfy [if true], sends either object or JSON
-    try {
-        await axios.get(`${apiUrl}pokemon/${req}/`)
-        .then( answer => {
-            if (req !== "") {
-                console.log(`API answered with ${req}'s data.`);
-                let name = answer.data.species.name;
-                let id = answer.data.id;
-                let icon = answer.data.sprites.versions['generation-viii'].icons.front_default;
-                let sprite = answer.data.sprites.front_default;
-                let types = [];
-                answer.data.types.forEach( (el,index) => types[index] = el.type.name )
-                if (needStringfy === true) {
-                    res.send(JSON.stringify(new pokemon(name, id, icon, sprite, types)))
-                }
-                else { return new pokemon(name, id, icon, sprite, types) }
-            } else { throw new Error(`It's blank dude, I need you to provide me something!`); }
-        })
-    } catch(error) {
-        console.error(error.message);
-        if (needStringfy === true) { res.send(JSON.stringify("oops")); }
-    }
+// ************* FUNCTIONS
+function createCard (pokeman) {
+    //filters pokeAPI's data into the card data
+    let name = pokeman.species.name;
+    let id = pokeman.id;
+    let icon = pokeman.sprites.versions['generation-viii'].icons.front_default;
+    let sprite = pokeman.sprites.front_default;
+    let types = [];
+    pokeman.types.forEach( (el,index) => types[index] = el.type.name )
+    return new pokemon(name, id, icon, sprite, types)
 }
 
 
-async function listFill (ID) {
-    //Get a pkmn ID, define offsets based on ID, update varList with the new deck information 
-    console.log(`Entrei em listFill, recebendo o seguinte ID: ${ID}`);
+async function listFill (firstID, range) {
+    //Get a pkmn ID, define offsets based on ID, update deckProperties with the new deck information 
+    console.log(`listFill called, firstID = (${firstID}) and range = (${range})`);
     try {
-        await axios.get(`${apiUrl}pokemon?limit=${varList.size}&offset=${ID - ID%varList.size}`)
+        await axios.get(`${apiUrl}pokemon?limit=${range}&offset=${firstID}`)
         .then( answer => {
-            console.log(`Successfull get in "${apiUrl}pokemon?limit=${varList.size}&offset=${ID}"`)
-            varList.offset = ID - ID%varList.size;
-            varList.totalPokemons = answer.data.count;
-            varList.next = varList.offset + varList.size;
-            varList.previous = varList.offset - varList.size;
-            if (varList.previous < 1) varList.previous = 0;
+            console.log(`Successfull get in "${apiUrl}pokemon?limit=${range}&offset=${firstID}"`)
+            deckProperties.totalPokemons = answer.data.count;
+            deckProperties.next = answer.data.next;
+            deckProperties.previous = answer.data.previous;
             answer.data.results.forEach((el, index) => {
-                varList.cardDeck[index] = el.name
+                deckProperties.listOfCards[index] = el.name
             })
-            console.log(`listFill finalizado, varList foi atualizada:`)
-            console.log(varList);
+            console.log(`listFill completed, deckProperties confirms ${deckProperties.totalPokemons} known pokémons... ${deckProperties.listOfCards.length} new cards will be included to the deck!`)
+            return deckProperties;
         })
     }
-    catch (e) { console.log(e.message) }
-    finally { return varList }
+    catch (e) {
+        console.log(`${e.message} ==> Returning "oops" error`);
+        return "oops";
+    }
 }
 
 internalApp.get("/carddeck", async (req, res) => {
-    await listFill (parseInt(req.query.id))
-    .then (res.send(JSON.stringify(varList)))
-});
+    //When front end requests a new card deck, first create the reference List
+    console.log('New request from the frontend => "Give me a new card deck" ===> calling listFill')
+    await listFill (parseInt(req.query.offset), parseInt(req.query.range))
+    .then ( answer => {
+        if (answer === "oops") {
+            res.send(JSON.stringify("oops"))
+        }
+        else {
+            promises = [];
+            for (let i = 0; i < deckProperties.listOfCards.length; i++) {
+                promises.push(axios.get(`${apiUrl}pokemon/${deckProperties.listOfCards[i]}/`).then((pokeman) => createCard(pokeman.data)));
+            }
+            Promise.all(promises)   //once all promisses are fullfilled, return the deck of cards + next deck link
+            .then( results => {
+                console.log(`Sending a new deck list to frontend! First Card is ${results[0].name}, last card is ${results[results.length-1].name} !!`)
+                res.send( JSON.stringify( [results] ))
+            })
+        }
+    })
+})
 
 
-internalApp.get("/newsearch", (req, res) => createCard (req.query.name, res, true));
+internalApp.get("/newsearch", async (req, res) => {
+    //Frontend requested a specific Card => get data from pokeAPI, create and return a card (or "oops" error) 
+    let success = true;
+    let newCard = [];
+    if (req.query.name === "") {
+        console.log('Received a blank pokémon, returning an "oops" error to the frontend')
+        res.send(JSON.stringify("oops"))
+    }
+    else {
+        try {
+            await axios.get(`${apiUrl}pokemon/${req.query.name}/`)
+            .then( pokeman => {
+                newCard = createCard( pokeman.data );
+            })
+        } catch(error) {
+            console.error(error.message)
+            success = false;
+        }
+        finally {
+            if (success === true) {
+                console.log(`Completed a new search and created a new ${newCard.name} card. Sending to frontend now.`)
+                res.send(JSON.stringify(newCard))
+            }
+            else { res.send(JSON.stringify("oops")) }
+        }
+    }
+})
 
 internalApp.listen(5000, () => { console.log("Server running on port 5000")});

@@ -26,35 +26,19 @@
             </div>
         </div>
         <div class="card-deck">
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
-            <div class="small-card"></div>
+            <!-- SMALL CARDS DECK HERE -->
         </div>
     </section>
 
     <script>
-        let currentID = 0;
+        let range = 30;
+        let deck = [];
         const card = document.querySelector(".card");
         const pokeForm = document.querySelector(".search-form input");
         const titleInput = document.querySelector(".dex-title");
         const typesInput = document.querySelector(".dex-types");
         const spriteInput = document.querySelector(".dex-sprite");
-        const cardDeck = document.querySelectorAll(".small-card");
+        const cardDeck = document.querySelectorAll(".card-deck");
         const button = document.querySelector(".search-button");
         colorType = {
             normal: "A8A77A",
@@ -81,49 +65,46 @@
             event.preventDefault();
             let typeImg = "";
             const pokemon = pokeForm.value.toLowerCase();
-            try {
-                fetch(`http://localhost:5000/newsearch?name=${pokemon}`)
-                .then(res => res.json())
-                .then(obj => {      //now we have the treated pokemon object straight from our API
-                    let typeImg = "";
-                    currentID = obj.id;
-                    if (obj !== undefined && obj !== "oops") {
-                        for (let i = 0; i < obj.types.length ; i++) {
-                            typeImg = typeImg + `<img src="./css/assets/icons/${obj.types[i]}_en.png" height="25px">`;
-                        }
-                        titleInput.innerHTML = `${obj.name}`;  //Title
-                        typesInput.innerHTML = typeImg;  // Types
-                        spriteInput.innerHTML = `<img src="${obj.sprite}" height="200px">`;  // Sprite
-                        card.style.backgroundColor = `#${colorType[obj.types[0]]}`;
-                    } else {    //If fetch gives me an undefined or "oops" error, then load missingno
-                        titleInput.innerHTML = "missingno";  //Title
-                        typesInput.innerHTML = `<img src="./css/assets/icons/unknown.png" height="25">`;  // Types
-                        spriteInput.innerHTML = `<img src="./css/assets/missingno.png" height="200px">`;  // Sprite
-                        card.style.backgroundColor = `#000000`;
+            fetch(`http://localhost:5000/newsearch?name=${pokemon}`)
+            .then(res => res.json())
+            .then(obj => {      //now we have the pokemon card object, straight from our API!
+                let typeImg = "";
+                if (obj !== undefined && obj !== "oops") {
+                    for (let i = 0; i < obj.types.length ; i++) {
+                        typeImg = typeImg + `<img src="./css/assets/icons/${obj.types[i]}_en.png" height="25px">`;
                     }
-                        card.style.display = "flex";
-                })
-            }
-            finally { getDeckList() }
+                    titleInput.innerHTML = `${obj.name}`;  //Title
+                    typesInput.innerHTML = typeImg;  // Types
+                    spriteInput.innerHTML = `<img src="${obj.sprite}" height="200px">`;  // Sprite
+                    card.style.backgroundColor = `#${colorType[obj.types[0]]}`;
+                } else {    //If fetch gives me an undefined or "oops" error, then load missingno
+                    titleInput.innerHTML = "missingno";  //Title
+                    typesInput.innerHTML = `<img src="./css/assets/icons/unknown.png" height="25">`;  // Types
+                    spriteInput.innerHTML = `<img src="./css/assets/missingno.png" height="200px">`;  // Sprite
+                    card.style.backgroundColor = `#000000`;
+                }
+                    card.style.display = "flex";
+            })
         }
         
-        const getDeckList = () => {
-            fetch(`http://localhost:5000/carddeck?id=${currentID}`)
+        async function getDeckList (targetURL) {
+            await fetch(targetURL)
             .then(res => res.json())
-            .then(obj => createSmallCard(obj))
-        }
-
-        const createSmallCard = (obj) => {
-            obj.cardDeck.forEach( async (element, index) => {
-                fetch(`http://localhost:5000/newsearch?name=${element}`)
-                .then(response => response.json())
-                .then(object => {
-                    cardDeck[index].innerHTML = `<h1>${object.id}</h1> <img src="${object.sprite}"></div>`;
-                })
+            .then(obj => {  //recebe um array de novos pkms a serem adicionados ao deck
+                if (obj != "oops"){
+                    obj = obj[0];
+                    cardDeck[0].innerHTML = createSmallCard (obj[0])
+                    // createSmallCard(obj[0])
+                }
             })
         }
 
-        getDeckList();
+        const createSmallCard = (obj) => {
+            return `<div class="small-card"><h1>${obj.id}</h1> <img src="${obj.sprite}"></div>`;
+        }
+
+
+        getDeckList(`http://localhost:5000/carddeck?offset=0&range=${range}`);
 
         button.addEventListener("click", createBigCard);
 
