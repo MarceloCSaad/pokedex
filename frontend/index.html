@@ -22,6 +22,7 @@
 
     <script>
         let range = 30;
+        let lastPokemon = 1;
         const card = document.querySelector(".card");
         const pokeForm = document.querySelector(".search-form input");
         const titleInput = document.querySelector(".dex-title");
@@ -32,8 +33,8 @@
         const missingno = {
             id: 0,
             name: "missingno",
-            icon: "./css/assets/icons/unknown.png",
-            sprite: "./css/assets/missingno.png",
+            icon: "./assets/icons/unknown.png",
+            sprite: "./assets/missingno.png",
             types: ["unknown"]
         }
         colorType = {
@@ -58,14 +59,13 @@
             unknown: "000000"
         }
         
-        const createBigCard = (obj) => {
-            console.log(`Hora de criar meu Big Card. Entrei em createBigCard e recebi o seguinte obj:`)
-            console.log(obj)
-            card.innerHTML = "";
 
+
+        const createBigCard = (obj) => {
             // !!!!!!!! SEE CARD SCTRUCTURE BELOW !!!!!!!!
             /*
             <div class="card">
+
                 <div class="content-container">
                     <div class="dex-title">
                         <!-- NAME -->
@@ -77,64 +77,77 @@
                 <div class="dex-sprite">
                 <!-- SPRITE -->
                 </div>
+
             </div>
             */
-            
-            let newContentContainer = document.createElement('div')
-            let newDexTitle = document.createElement('div')
-            let newDexTypes = document.createElement('div')
-            let newDexSprite = document.createElement('div')
-            
-            newContentContainer.className = "content-container"
-            newDexTitle.className = "dex-title"
-            newDexTypes.className = "dex-types"
-            newDexSprite.className = "dex-sprite"
 
-            newDexTitle.innerHTML = obj.name
-            newContentContainer.appendChild(newDexTitle)
+            card.innerHTML = ""; //clear current card content
+
+            let newContentContainer = document.createElement('div');
+            let newDexTitle = document.createElement('div');
+            let newDexTypes = document.createElement('div');
+            let newDexSprite = document.createElement('div');
+            
+            newContentContainer.className = "content-container";
+            newDexTitle.className = "dex-title";
+            newDexTypes.className = "dex-types";
+            newDexSprite.className = "dex-sprite";
+
+            newDexTitle.innerHTML = obj.name;
+            newContentContainer.appendChild(newDexTitle);
 
             let newSprite;
             for (let i = 0; i < obj.types.length ; i++) {
-                newSprite = document.createElement('img')
-                if (obj.types[i] === "unknown") { newSprite.src = "./css/assets/icons/unknown.png" }
-                else { newSprite.src = `./css/assets/icons/${obj.types[i]}_en.png` }
-                newSprite.style.height = '25px'
+                newSprite = document.createElement('img');
+                if (obj.types[i] === "unknown") { newSprite.src = "./assets/icons/unknown.png" }
+                else { newSprite.src = `./assets/icons/${obj.types[i]}_en.png` }
+                newSprite.style.height = '25px';
                 newDexTypes.appendChild(newSprite);
             }
-            newContentContainer.appendChild(newSprite)
-            card.appendChild(newContentContainer)
+            newContentContainer.appendChild(newDexTypes);
+            if ( obj.types.length > 1 ) {
+                newContentContainer.style.backgroundColor = `#${colorType[obj.types[1]]}`;
+                newContentContainer.style.boxShadow = "0px 1px 0px black";
+            }
+            card.appendChild(newContentContainer);
 
-            newSprite = document.createElement('img')
-            newSprite.src = `${obj.sprite}`
-            newSprite.style.height = "200px"
-            card.appendChild(newSprite)
+            newSprite = document.createElement('img');
+            newSprite.src = `${obj.sprite}`;
+            newSprite.style.height = "200px";
+            newSprite.style.margin = "10px 20px 20px 20px";
+            card.appendChild(newSprite);
 
             card.style.backgroundColor = `#${colorType[obj.types[0]]}`;
             card.style.display = "flex";
         }
 
         const createSmallCard = (obj) => {
-            let newCardBody = document.createElement('div')
-            let cardID = document.createElement('h1')
-            let cardSprite = document.createElement('img')
+            let newCardBody = document.createElement('div');
+            let newCardTop = document.createElement('div');
+            let newCardBottom = document.createElement('div');
+            let cardSprite = document.createElement('img');
             
-            newCardBody.className = "small-card"
-            cardID.innerHTML = obj.id
-            cardID.style.margin = "0px"
-            cardSprite.className = "img"
-            cardSprite.src = obj.sprite
+            newCardTop.className = "small-card-top";
+            newCardBottom.className = "small-card-bottom";
+            newCardBody.className = "small-card";
+            newCardTop.innerHTML = obj.id;
+            cardSprite.className = "img";
+            cardSprite.src = obj.sprite;
             
-            newCardBody.appendChild(cardID);
-            newCardBody.appendChild(cardSprite);
+            newCardBody.appendChild(newCardTop);
+            newCardBottom.appendChild(cardSprite);
+            newCardBody.appendChild(newCardBottom);
             
-            return newCardBody
+            newCardBody.addEventListener("click", () => { createBigCard(obj) });
+
+            return newCardBody;
         }
 
         async function getSingleCard (event) {
             event.preventDefault();
             let success = true;
             const pokemon = pokeForm.value.toLowerCase();
-            await fetch(`http://localhost:5000/newsearch?name=${pokemon}`)
+            await fetch(`http://localhost:5000/newsearch?name=${pokemon.replace(/\s/g, '-')}`)
             .then(res => res.json())
             .then(obj => {
                 if (obj === "oops") {
@@ -146,23 +159,26 @@
             card.style.display = "flex";
         }
 
-        async function getDeckList (targetURL) {
-            await fetch(targetURL)
+        async function getDeckList (lastPokemon, range) {
+            await fetch(`http://localhost:5000/carddeck?offset=${lastPokemon-1}&range=${range}`)
             .then(res => res.json())
             .then(obj => {  //recebe um array de novos pkms a serem adicionados ao deck
                 if (obj != "oops"){
                     obj = obj[0];
-                    obj.forEach( el => { cardDeck.appendChild(createSmallCard(el)) })
+                    lastPokemon = lastPokemon + range;
+                    obj.forEach( el => { cardDeck.appendChild( createSmallCard(el) ) })
+                    let stackOfCards = document.querySelectorAll(".small-card");
                     // createSmallCard(obj[0])
                 }
             })
         }
 
 
-        getDeckList(`http://localhost:5000/carddeck?offset=0&range=${range}`);  //ON PAGE LOAD => INITIAL DECK
+        getDeckList(lastPokemon, range);  //ON PAGE LOAD => INITIAL DECK
+
+
 
         button.addEventListener("click", getSingleCard);
-
 
         // FORM CLICKER ==> HITTING ENTER WHILE TYPING A POKEMON WILL CLICK THE "GO!" BUTTON
         pokeForm.addEventListener("keydown", function(event) {

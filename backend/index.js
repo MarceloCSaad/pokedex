@@ -12,24 +12,15 @@
 //Let's begin!
 
 
-
-
 //Variables
+const Pokemon = require("./models/Pokemon")
 const axios = require("axios");
 const express = require("express");
 const internalApp = express();
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const apiUrl = "https://pokeapi.co/api/v2/";
-class pokemon {
-    constructor (name, id, icon, sprite, types) {
-        this.id = id;
-        this.name = name;
-        this.icon = icon;
-        this.sprite = sprite;
-        this.types = types;
-    }
-};
+
 const deckProperties = {
     totalPokemons: 0, //house the total amount of known pokemons
     next: "",         //store the next list (kindly provided by pokeAPI itself)
@@ -50,17 +41,17 @@ function createCard (pokeman) {
     let sprite = pokeman.sprites.front_default;
     let types = [];
     pokeman.types.forEach( (el,index) => types[index] = el.type.name )
-    return new pokemon(name, id, icon, sprite, types)
+    return new Pokemon(name, id, icon, sprite, types)
 }
 
 
-async function listFill (firstID, range) {
+async function listFill (offset, range) {
     //Get a pkmn ID, define offsets based on ID, update deckProperties with the new deck information 
-    console.log(`listFill called, firstID = (${firstID}) and range = (${range})`);
+    console.log(`listFill called, offset = {${offset}} and range = {${range}}`);
     try {
-        await axios.get(`${apiUrl}pokemon?limit=${range}&offset=${firstID}`)
+        await axios.get(`${apiUrl}pokemon?limit=${range}&offset=${offset}`)
         .then( answer => {
-            console.log(`Successfull get in "${apiUrl}pokemon?limit=${range}&offset=${firstID}"`)
+            console.log(`Successfull get in "${apiUrl}pokemon?limit=${range}&offset=${offset}"`)
             deckProperties.totalPokemons = answer.data.count;
             deckProperties.next = answer.data.next;
             deckProperties.previous = answer.data.previous;
