@@ -67,31 +67,40 @@ img {
     justify-content: center;
     align-items: center;
 }
-.card-deck {
-    display: flex;
-    flex-flow: row wrap;
-    justify-content: space-evenly;
-    padding-top: 30px;
+#card-deck {
+    padding-inline-start: 0px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     /* box-shadow: 0px -2px 2px black; */
 }
 .small-card {
+    list-style: none;
     cursor: pointer;
-    margin: 20px;
     background-color: "#131313";
+    margin: 40px;
 }
 .small-card:hover {
-    cursor: pointer;
+    animation: bounce 0.5s linear;
+}
+
+@keyframes bounce {
+    30% {
+        transform: translateY(-6px);
+    }
 }
 
 .small-card-top {
     border-radius: 20px 20px 0px 0px;
     background-color: crimson;
     width: 100%;
-    padding: 5px 0px 5px 0px;
+    padding: 10px 0px 10px 0px;
+    font-family: 'Varela Round', sans-serif;
+    font-size: large;
     display: flex;
     color: lavenderblush;
     flex-direction: column;
-    justify-items: center;
+    justify-items: left;
     align-items: center;
     border-radius: 20px 20px 0px 0px;
 }
@@ -102,6 +111,7 @@ img {
     flex-direction: column;
     justify-items: center;
     align-items: center;
+    padding: 20px;
     border-radius: 0px 0px 20px 20px;
     box-shadow: 0px 3px 2px black;
 }

@@ -15,20 +15,20 @@
         <div class="card">
             <!-- BIG CARD CREATED DINAMICALLY HERE -->
         </div>
-        <div class="card-deck">
+        <ol id="card-deck">
             <!-- DECK OF SMALL CARDS CREATED DINAMICALLY HERE -->
-        </div>
+        </ol>
     </section>
 
     <script>
-        let range = 30;
-        let lastPokemon = 1;
+        let range = 50;
+        let startingPokemon = 1;
         const card = document.querySelector(".card");
         const pokeForm = document.querySelector(".search-form input");
         const titleInput = document.querySelector(".dex-title");
         const typesInput = document.querySelector(".dex-types");
         const spriteInput = document.querySelector(".dex-sprite");
-        const cardDeck = document.querySelector(".card-deck");
+        const cardDeck = document.querySelector("#card-deck");
         const button = document.querySelector(".search-button");
         const missingno = {
             id: 0,
@@ -37,7 +37,7 @@
             sprite: "./assets/missingno.png",
             types: ["unknown"]
         }
-        colorType = {
+        const colorType = {
             normal: "A8A77A",
             fire: "EE8130",
             water: "6390F0",
@@ -58,7 +58,7 @@
             fairy: "D685AD",
             unknown: "000000"
         }
-        
+        let noThrottle = true;
 
 
         const createBigCard = (obj) => {
@@ -87,6 +87,7 @@
             let newDexTitle = document.createElement('div');
             let newDexTypes = document.createElement('div');
             let newDexSprite = document.createElement('div');
+            
             
             newContentContainer.className = "content-container";
             newDexTitle.className = "dex-title";
@@ -122,19 +123,23 @@
         }
 
         const createSmallCard = (obj) => {
-            let newCardBody = document.createElement('div');
+            let newCardBody = document.createElement('li');
             let newCardTop = document.createElement('div');
             let newCardBottom = document.createElement('div');
             let cardSprite = document.createElement('img');
+            let typeLine = document.createElement('div')
             
             newCardTop.className = "small-card-top";
             newCardBottom.className = "small-card-bottom";
             newCardBody.className = "small-card";
-            newCardTop.innerHTML = obj.id;
+            newCardTop.innerHTML = `#${obj.id}`;
             cardSprite.className = "img";
             cardSprite.src = obj.sprite;
+            typeLine.style.height = "5px";
+            typeLine.style.backgroundImage = `linear-gradient(to right, #${colorType[obj.types[0]]} 50%, #${colorType[obj.types[obj.types.length-1]]} 50%`;
             
             newCardBody.appendChild(newCardTop);
+            newCardBody.appendChild(typeLine);
             newCardBottom.appendChild(cardSprite);
             newCardBody.appendChild(newCardBottom);
             
@@ -159,23 +164,33 @@
             card.style.display = "flex";
         }
 
-        async function getDeckList (lastPokemon, range) {
-            await fetch(`http://localhost:5000/carddeck?offset=${lastPokemon-1}&range=${range}`)
+        async function getDeckList (offset, range) {
+            await fetch(`http://localhost:5000/carddeck?offset=${offset-1}&range=${range}`)
             .then(res => res.json())
             .then(obj => {  //recebe um array de novos pkms a serem adicionados ao deck
                 if (obj != "oops"){
                     obj = obj[0];
-                    lastPokemon = lastPokemon + range;
                     obj.forEach( el => { cardDeck.appendChild( createSmallCard(el) ) })
                     let stackOfCards = document.querySelectorAll(".small-card");
-                    // createSmallCard(obj[0])
                 }
             })
         }
 
 
-        getDeckList(lastPokemon, range);  //ON PAGE LOAD => INITIAL DECK
+        getDeckList(1, range);  //ON PAGE LOAD => INITIAL DECK
+        startingPokemon = startingPokemon + range;
 
+        window.addEventListener("scroll", async () => {
+            const {scrollTop, scrollHeight, clientHeight} = document.documentElement;
+            if (noThrottle === true && scrollTop + 300 > scrollHeight - clientHeight) {
+                noThrottle = false;
+                await getDeckList(startingPokemon, range)
+                .then(() => {
+                    startingPokemon = startingPokemon + range;
+                    noThrottle = true; //after finished with the current deck building, allow for new deck building requests
+                })
+            }
+        })
 
 
         button.addEventListener("click", getSingleCard);
